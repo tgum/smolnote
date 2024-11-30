@@ -1,26 +1,105 @@
 import os
+from pathlib import Path
 
 import chevron
+
+# import bcrypt
 
 import minittp
 from minittp import Response
 
+import database
 
-def relative_file(path):
-    script_dir = os.path.dirname(__file__)  # Get the directory of the current script
+script_dir = os.path.dirname(__file__)  # Get the directory of the current script
+
+
+def rel_file(path):
     return os.path.join(script_dir, path)
+
+
+templates = {}
+for file in list(Path(script_dir).rglob("*.mustache")):
+    with open(file) as f:
+        path = (
+            str(file)
+            .removeprefix(script_dir)
+            .removeprefix("/templates/")
+            .removesuffix(".mustache")
+        )
+        templates[path] = f.read()
+for key in templates:
+    if key in ["page", "note"]:
+        continue
+    templates[key] = chevron.render(templates["page"], {"content": templates[key]})
 
 
 class Home(minittp.RequestHandler):
     def handler(self, req):
+        user = 1
         res = Response()
-        with open("templates/home.mustache") as f:
-            res.body = chevron.render(f.read(), {"title": "HOme", "body": "hey dood"})
+        notes_list = ""
+        notes = database.get_notes_by_user(user)
+        for note in notes:
+            with open(f"users/{user}/notes/{note[2]}.txt") as f:
+                notes_list += chevron.render(
+                    templates["note"],
+                    {"title": note[1], "content": f.read(), "id": note[0]},
+                )
+        res.body = chevron.render(templates["home"], {"notes": notes_list})
+        return res
+
+
+class New(minittp.RequestHandler):
+    def handler(self, req):
+        user = 1
+        res = Response()
+        res.body = str(req.query)
+        if "content" not in req.query:
+            return False
+        if "name" not in req.query:
+            return False
+        name = req.query["name"][0]
+        content = req.query["content"][0]
+        with open(f"users/{user}/notes/{name}.txt", "w") as f:
+            f.write(content)
+            database.add_note(name, user)
+        return res
+
+
+class DeleteConfirm(minittp.RequestHandler):
+    def handler(self, req):
+        res = Response()
+        if "id" not in req.query:
+            return False
+        noteid = req.query["id"][0]
+        note = database.get_note_by_id(noteid)
+        res.body = chevron.render(
+            templates["delete_confirm"], {"name": note[1], "id": noteid}
+        )
+        return res
+
+
+class Delete(minittp.RequestHandler):
+    def handler(self, req):
+        user = 1
+        res = Response()
+        if "id" not in req.query:
+            return False
+        noteid = req.query["id"][0]
+        note = database.get_note_by_id(noteid)
+        if note[3] != user:
+            res.body = "You cant delete someone elses notes..."
+            return res
+        database.delete_note(noteid)
+        notepath = Path(f"users/{user}/notes/") / (note[2] + ".txt")
+        notepath.unlink()
         return res
 
 
 if __name__ == "__main__":
     server = minittp.Server("", 8080)
-    server.register_handler(r"/index.html", Home())
-    server.internal_redirect(r"/(.*/)?", r"/\1index.html")
+    server.register_handler(r"/", Home())
+    server.register_handler(r"/new(\?.*)?", New())
+    server.register_handler(r"/delete_confirm(\?.*)?", DeleteConfirm())
+    server.register_handler(r"/delete(\?.*)?", Delete())
     server.start()
