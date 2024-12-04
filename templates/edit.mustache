@@ -1,5 +1,8 @@
 <form method="get" action="/save_edit">
-  <input type="text" id="name" name="name"><br><br>
-  <textarea id="content" placeholder="Note" name="content" rows="10" cols="40"></textarea>
-  <input type="submit" value="Submit" style="font-size: 300%;"> 
+  <input type="text" id="id" name="id" value="{{id}}" style="display: none">
+  <input type="text" id="name" name="name" placeholder="new name" value="{{name}}"><br><br>
+  <textarea id="content" placeholder="Note" name="content" rows="10" cols="40">{{content}}</textarea>
+  <br>
+  <input type="submit" value="Submit" style="font-size: 2em;">
+  <a href="/" class=buttonlink>Cancel</a>
 </form>

@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS Notes (
     filename TEXT,
     creatorid INTEGER,
     creation_date INTEGER,
-    modified INTEGER
+    modified INTEGER,
+    public INTEGER
 );
 """
 )
@@ -41,9 +42,9 @@ def add_note(name, creatorid):
     db_cursor.execute(
         """
     INSERT INTO Notes (name, filename, creatorid, creation_date, modified)
-    VALUES (?, ?, ?, ?, ?);
+    VALUES (?, ?, ?, ?, ?, ?);
     """,
-        (name, name, creatorid, time.time(), time.time()),
+        (name, name, creatorid, time.time(), time.time(), 0),
     )
     db_conn.commit()
 
@@ -62,6 +63,19 @@ def get_note_by_id(noteid):
 
 def delete_note(noteid):
     db_cursor.execute("""DELETE FROM Notes WHERE noteid=?""", (noteid,))
+    db_conn.commit()
+
+
+def set_note_name(noteid, name):
+    db_cursor.execute(
+        """
+    UPDATE Notes
+    SET name = ?, modified = ?
+    WHERE noteid = ?
+    """,
+        (name, time.time(), noteid),
+    )
+    db_conn.commit()
 
 
 def add_user(name, password):

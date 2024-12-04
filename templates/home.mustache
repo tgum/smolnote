@@ -1,7 +1,19 @@
 <h1>smolnote web</h1>
+<p>{{msg}}</p>
 <form method="get" action="/new">
   <input type="text" id="name" name="name"><br><br>
   <textarea id="content" placeholder="Note" name="content" rows="10" cols="40"></textarea>
   <input type="submit" value="Submit" style="font-size: 300%;"> 
 </form>
-{{{notes}}}
+{{#notes}}
+<div class="note">
+  <h1 class="notename">{{name}}</h1>
+  <p>Created {{creation_date}}</p>
+  <p>Modified {{modified}}</p>
+  <pre class="notecontent">
+{{content}}
+  </pre>
+  <a class="buttonlink" href="/edit?id={{noteid}}">edit</a>
+  <a class="buttonlink" href="/delete_confirm?id={{noteid}}">delete</a>
+</div>
+{{/notes}}
